@@ -99,7 +99,12 @@ function showCreateForm($mysqli, $table) {
 
     while ($col = $q->fetch_assoc()) {
         $field = $col['Field'];
-        if ($field === $pk) continue; // Skip Auto Increment ID
+        $extra = strtolower($col['Extra']);
+
+        // HANYA SKIP JIKA ADA AUTO_INCREMENT
+        if (strpos($extra, 'auto_increment') !== false) {
+            continue; 
+        }
 
         echo "<b>$field</b><br>";
 
@@ -238,11 +243,17 @@ function cloneData($mysqli, $table, $pk, $id) {
 
         $sql = "INSERT INTO `$table` (".implode(",",$cols).") VALUES (".implode(",",$vals).")";
 
-        if ($mysqli->query($sql)) {
-            echo "<h3>✅ Clone Berhasil!</h3>";
+        try {
+            if ($mysqli->query($sql)) {
+                echo "<h3>✅ Clone Berhasil!</h3>";
+                echo "<a href='?table=$table'>Kembali ke Tabel</a>";
+            } else {
+                echo "<h3>❌ Gagal Clone: " . $mysqli->error . "</h3>";
+            }
+        } catch (Exception $e) {
+            echo "<h3>❌ Gagal Clone: " . $e->getMessage() . "</h3>";
+            echo "<p><b>Penjelasan:</b> Error ini terjadi karena tabel tersebut memiliki kolom yang wajib Unik (seperti `username`). Saat kamu melakukan Clone, semua data di-copy persis (termasuk username 'admin'). MySQL menolak karena tidak boleh ada dua akun dengan username yang sama.</p>";
             echo "<a href='?table=$table'>Kembali ke Tabel</a>";
-        } else {
-            echo "<h3>❌ Gagal Clone: " . $mysqli->error . "</h3>";
         }
     } else {
         echo "Data sumber tidak ditemukan.";
