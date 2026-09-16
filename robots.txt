@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: http://web.hiims.in/public/new/sitemap.xml
